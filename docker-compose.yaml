@@ -1,0 +1,39 @@
+services:
+  broker:
+    image: apache/kafka:3.9.1
+    hostname: broker
+    container_name: broker
+    ports:
+      - '127.0.0.1:9092:9092/tcp'
+    environment:
+      # Based on https://developer.confluent.io/confluent-tutorials/kafka-on-docker/
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:29093
+      KAFKA_LISTENERS: PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /var/kafka-logs
+    volumes:
+      - ./kafka-logs:/var/kafka-logs
+  bitcoind:
+    image: analyzer-btc/bitcoind:30.0
+    build:
+      dockerfile_inline: |
+        FROM ubuntu:24.04
+        RUN apt update && apt install -y curl
+        RUN curl -O https://bitcoincore.org/bin/bitcoin-core-30.0/bitcoin-30.0-x86_64-linux-gnu.tar.gz \
+                 -O https://bitcoincore.org/bin/bitcoin-core-30.0/SHA256SUMS && \
+            sha256sum --ignore-missing --check SHA256SUMS && \
+            tar xvf bitcoin-30.0-x86_64-linux-gnu.tar.gz
+        CMD /bitcoin-30.0/bin/bitcoind -blocksonly
+    container_name: bitcoind
+    volumes:
+      - ./bitcoind:/root/.bitcoin
