@@ -11,12 +11,17 @@ fun main() {
 
     val blkDatPaths = File(basePath)
         .listFiles { Regex("^blk\\d+\\.dat$").matches(it.name) }
-        .sorted()
+        ?.sorted()
+        ?: emptyList()
 
     for (path in blkDatPaths) {
-        println("processing ${path}")
+        println("processing $path")
+        val stream = XorFileStream(path, xorKey)
 
         // FIXME STOPPED Ref https://learnmeabitcoin.com/technical/block/blkdat/
+        //               Then attempt to parse the file and produce List<Block>
+        //               Identify Addresses from the Blocks and update their balances in a KTable
+        println(stream.readNBytes(4).joinToString(" ", "[", "]") { String.format("%02x", it) })
         break // FIXME Remove
     }
 
