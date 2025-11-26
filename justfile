@@ -1,12 +1,16 @@
 default:
-    just --list
+    @just --list
 
 run:
     ./gradlew shadowJar
     java -jar build/libs/analyzer-btc-1.0-SNAPSHOT-all.jar
 
-# Bring up the Kafka broker (--build --detach are useful extra arguments)
+test *extra:
+    @# --info --rerun and --test <specifier> are useful extra arguments
+    ./gradlew test {{extra}}
+
 broker-up *extra:
+    @# --build --detach are useful extra arguments
     docker compose up {{extra}} broker
 broker-down:
     docker compose down broker
@@ -15,8 +19,8 @@ broker-shell:
 list-topics:
     docker exec broker /opt/kafka/bin/kafka-topics.sh --bootstrap-server broker:29092 --list
 
-# Bring up the Bitcoin daemon (--build --detach are useful extra arguments)
 bitcoind-up *extra:
+    @# --build and --detach are useful extra arguments
     docker compose up {{extra}} bitcoind
 bitcoind-down:
     docker compose down bitcoind

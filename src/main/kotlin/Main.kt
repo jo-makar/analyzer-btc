@@ -2,6 +2,7 @@ package com.github.jo_makar
 
 import java.io.File
 
+@kotlin.time.ExperimentalTime
 fun main() {
     val basePath = "bitcoind/blocks/"
 
@@ -21,7 +22,7 @@ fun main() {
         // FIXME STOPPED Ref https://learnmeabitcoin.com/technical/block/blkdat/
         //               Then attempt to parse the file and produce List<Block>
         //               Identify Addresses from the Blocks and update their balances in a KTable
-        println(stream.readNBytes(4).joinToString(" ", "[", "]") { String.format("%02x", it) })
+        Block(stream)
         break // FIXME Remove
     }
 
