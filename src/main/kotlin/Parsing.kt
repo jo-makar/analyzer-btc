@@ -11,12 +11,25 @@ import kotlin.time.Instant
 
 // Refs: https://learnmeabitcoin.com/technical/block/blkdat/
 //       https://learnmeabitcoin.com/technical/block/#header
+//       https://learnmeabitcoin.com/technical/transaction/
+
+// NB All integral types in Java/Kotlin are signed, including Bytes
 
 class XorFileStream(val stream: InputStream, val xorKey: ByteArray) {
     private var xorKeyIdx = 0
     init { check(xorKey.size == 8) }
 
     constructor(file: File, xorKey: ByteArray) : this(FileInputStream(file), xorKey)
+
+    fun readByte(): Byte {
+        val byte = stream.read()
+        if (byte == -1)
+            throw EOFException()
+
+        val xorByte = xorKey[xorKeyIdx]
+        xorKeyIdx = (xorKeyIdx + 1) % 8
+        return byte.toByte() xor xorByte
+    }
 
     fun readNBytes(n: Int): ByteArray {
         val buffer = stream.readNBytes(n)
@@ -48,13 +61,22 @@ class XorFileStream(val stream: InputStream, val xorKey: ByteArray) {
     }
 
     fun readCompactSize(): ULong {
-        return when (val firstByte = stream.read()) {
-            -1 -> throw EOFException()
-            in 0..0xfc -> firstByte.toULong()
-            0xfd -> readUShort().toULong()
-            0xfe -> readUInt().toULong()
-            0xff -> readULong()
-            else -> throw RuntimeException("unexpected first byte ${String.format("%02", firstByte)}")
+        return when (val firstByte = readByte().toUByte()) {
+            in 0u..0xfcu -> firstByte.toULong()
+            0xfd.toUByte() -> readUShort().toULong()
+            0xfe.toUByte() -> readUInt().toULong()
+            0xff.toUByte() -> readULong()
+            else -> throw RuntimeException("not possible")
+        }
+    }
+
+    fun readCompactSize(firstByte: Byte): ULong {
+        return when (firstByte.toUByte()) {
+            in 0u..0xfcu -> firstByte.toULong()
+            0xfd.toUByte() -> readUShort().toULong()
+            0xfe.toUByte() -> readUInt().toULong()
+            0xff.toUByte() -> readULong()
+            else -> throw RuntimeException("not possible")
         }
     }
 }
@@ -70,23 +92,49 @@ class Block(stream: XorFileStream) {
         val blockSize = stream.readUInt()
 
         // Version / readiness signal for soft forks
-        stream.readNBytes(4)
-
-        // Previous block
-        stream.readNBytes(32)
-
+        val version = stream.readNBytes(4)
+        val previousBlock = stream.readNBytes(32)
         val merkleRoot = stream.readNBytes(32)
-
         time = Instant.fromEpochSeconds(stream.readUInt().toLong())
-
         // (Target) Bits
-        stream.readNBytes(4)
-
-        // Nonce
-        stream.readNBytes(4)
+        val bits = stream.readNBytes(4)
+        val nonce = stream.readNBytes(4)
 
         val transactionCount = stream.readCompactSize()
+        check(transactionCount >= 1U)
+
+        // The first transaction is a special transaction called the coinbase transaction,
+        // that miners place inside the block to collect the block reward (block subsidy & transaction fees)
+
+        // FIXME
+        Transaction(stream, true)
+    }
+}
+
+class Transaction(stream: XorFileStream, coinbase: Boolean = false) {
+    val version: UInt
+    val marker: Byte?
+    var flag: Byte?
+
+    init {
+        version = stream.readUInt()
+        check(version == 1U || version == 2U)
+
+        // Segregated Witness (SegWit) was introduced in 2017 and introducing some ambiguity to transaction parsing.
+        // Ref: https://learnmeabitcoin.com/technical/upgrades/segregated-witness/
+
+        val byte = stream.readByte()
+        val inputCount = if (byte == 0.toByte()) {
+            marker = byte
+            flag = stream.readByte()
+            stream.readCompactSize()
+        } else {
+            marker = null
+            flag = null
+            stream.readCompactSize(byte)
+        }
 
         // FIXME STOPPED
+        println("$marker $flag $inputCount")
     }
 }
