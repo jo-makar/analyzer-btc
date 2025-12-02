@@ -22,7 +22,8 @@ fun main() {
         // FIXME STOPPED Ref https://learnmeabitcoin.com/technical/block/blkdat/
         //               Then attempt to parse the file and produce List<Block>
         //               Identify Addresses from the Blocks and update their balances in a KTable
-        Block(stream)
+        val block = Block(stream)
+        println("${block.coinbase.txid.joinToString("") { String.format("%02x", it) }} ${block.coinbase.transferTo()}")
         break // FIXME Remove
     }
 

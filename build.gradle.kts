@@ -11,7 +11,9 @@ repositories {
 }
 
 dependencies {
+    implementation("io.github.novacrypto:Base58:2022.01.17@jar")
     implementation("org.apache.kafka:kafka-streams:3.9.1")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.83")
     testImplementation(kotlin("test"))
 }
 
