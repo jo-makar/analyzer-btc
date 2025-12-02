@@ -46,6 +46,14 @@ fun main(args: Array<String>) {
             ?.sorted()
             ?: emptyList()
 
+        // TODO Stopping point, notes for later continued work
+        // - Is the first blk*.dat file incomplete?  Does not seem to end on a block boundary
+        // - How can the pipeline be started and stopped?  Ie starting / stopping producers, consumer (Stream app) appropriately
+        // - How to make the state store queries outside of the Streams application?
+        //   - Ie how to query the underlying RocksDB database outside of a Streams application?
+
+        // TODO Should include TXID in produced records to allow consumer the option of ignoring seen records
+
         for (path in blkDatPaths) {
             println("processing $path")
             val stream = XorFileStream(path, xorKey)
