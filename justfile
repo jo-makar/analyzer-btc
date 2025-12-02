@@ -1,9 +1,13 @@
 default:
     @just --list
 
-run:
+run-producer:
     ./gradlew shadowJar
-    java -jar build/libs/analyzer-btc-1.0-SNAPSHOT-all.jar
+    java -jar build/libs/analyzer-btc-1.0-SNAPSHOT-all.jar -producer
+
+run-consumer:
+    ./gradlew shadowJar
+    java -jar build/libs/analyzer-btc-1.0-SNAPSHOT-all.jar -consumer
 
 test *extra:
     @# --info --rerun and --test <specifier> are useful extra arguments

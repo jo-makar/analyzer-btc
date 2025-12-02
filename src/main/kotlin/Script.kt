@@ -13,17 +13,25 @@ sealed class Opcode(val byte: Byte) {
     class OP_CHECKSIG() : Opcode(0xac.toByte())
 
     companion object {
-        fun parseScript(script: ArrayList<Byte>): Opcode {
-            return when (val byte = script.removeFirst().toUByte()) {
-                in 0x01.toUByte()..0x4b.toUByte() -> {
-                    val arg = script.subList(0, byte.toInt()).toByteArray()
-                    script.subList(0, byte.toInt()).clear()
-                    OP_PUSHBYTES_N(byte.toInt(), arg)
+        fun parseScript(script: ArrayList<Byte>): Opcode? {
+            try {
+                return when (val byte = script.removeFirst().toUByte()) {
+                    in 0x01.toUByte()..0x4b.toUByte() -> {
+                        val arg = script.subList(0, byte.toInt()).toByteArray()
+                        script.subList(0, byte.toInt()).clear()
+                        OP_PUSHBYTES_N(byte.toInt(), arg)
+                    }
+
+                    0xac.toUByte() -> OP_CHECKSIG()
+
+                    else -> {
+                        //System.err.println("unhandled opcode $byte")
+                        null
+                    }
                 }
-
-                0xac.toUByte() -> OP_CHECKSIG()
-
-                else -> throw RuntimeException("unhandled opcode $byte")
+            } catch (e: Exception) {
+                System.err.println(e)
+                return null
             }
         }
     }
@@ -35,8 +43,10 @@ class Script(val rawScript: ByteArray) {
     init {
         val script: ArrayList<Byte> = ArrayList(rawScript.toList())
         val parsed: MutableList<Opcode> = mutableListOf()
-        while (script.isNotEmpty())
-            parsed.add(Opcode.parseScript(script))
+        while (script.isNotEmpty()) {
+            val opcode = Opcode.parseScript(script) ?: break
+            parsed.add(opcode)
+        }
         parsedScript = parsed.toList()
     }
 
